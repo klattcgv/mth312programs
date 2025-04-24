@@ -1,5 +1,6 @@
 import numpy as np
 import sympy as sy
+import string
 import random
 
 #Code from Class
@@ -121,27 +122,70 @@ while not r in prods:
 
 #Start of ECEC--------------------------------------------------------------------------
 
-def str_to_int(s: str) -> int:
-    """Convert a string to an integer (simple reversible encoding)."""
+def string2num(instring: str, alphabet: str=string.printable):
+  mynum=0
+  for j in instring:
+    mynum=len(alphabet)*mynum+alphabet.index(j)
+  return mynum
 
-    return sum(ord(c) << (8 * i) for i, c in enumerate(s)) % p
+def encode(message: str, modulus: int=p,alphabet: str=string.printable):
+    n=string2num(message,alphabet)
 
+    nlist=[]
+    while n>0:
+        nlist+=[n%modulus]
+        n=n//modulus
+    return nlist
+
+def num2string(number: int, alphabet: str = string.printable):
+    base = len(alphabet)
+    plaintext = ''
+    while number > 0:
+        number, index = divmod(number, base)
+        plaintext = alphabet[index] + plaintext
+    return plaintext
+
+def decode(nlist, modulus: int=p, alphabet: str=string.printable):
+    decoded_message = ""
+    n = 0
+
+    for num in reversed(nlist):
+        n = n * modulus + num
+
+    decoded_message = num2string(n)
+
+    return decoded_message
 
 def find_point(msg: str):
-    """Find a valid point on the curve from a message."""
-    base_x = str_to_int(msg)
+    base_x = encode(msg)
+    print(base_x)
+    encrypted_message = []
+    k = 50
 
-    for i in range(p):
-        x = (base_x + i) % p
-        rhs = (x ** 3 + alpha * x + beta) % p
-        y = mSqrt(rhs, p)
-        if y is not None:
-            return (x, y)
+    for num in base_x:
+        x = 0
+        for i in range(p):
+            x += (num*k + i) % p
+            rhs = (x ** 3 + alpha * x + beta) % p
+            y = mSqrt(rhs, p)
+            if y is not None:
+                new_point = [x,y,k]
+                encrypted_message += new_point
+            else:
+                k = random.randint(30,50)
+                i = 0
+                #raise ValueError("Couldn't find a valid point on the curve.")
+    return encrypted_message
 
-    raise ValueError("Couldn't find a valid point on the curve.")
+def decrypt_message(nlist):
+    deciphered_list = [(nlist[i]//nlist[i+2]) for i in range(0,len(nlist),3)]
+    print(deciphered_list)
+    decoded_message = decode(deciphered_list)
+    return decoded_message
 
 
-
-msg = "This is a test"
-point = find_point(msg)
-print(msg, " Maps onto the point: ", point)
+msg = "This is a test."
+points = find_point(msg)
+print(msg, " Maps onto the points: ", points)
+decrypted = decrypt_message(points)
+print("Decrypted message: ",decrypted)
